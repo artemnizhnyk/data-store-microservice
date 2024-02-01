@@ -10,15 +10,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 @Getter
 @Setter
 @ToString
+@NoArgsConstructor
 public class Summary {
 
     private long sensorId;
-    private Map<MeasurementType, List<SummaryEntry>> values;
+    private Map<MeasurementType, List<SummaryEntry>> values = new HashMap<>();
 
-    @NoArgsConstructor
     @Getter
     @Setter
     @ToString
@@ -26,10 +27,7 @@ public class Summary {
 
         private SummaryType type;
         private double value;
-    }
-
-    public Summary() {
-        this.values = new HashMap<>();
+        private long counter;
     }
 
     public void addValue(MeasurementType type, SummaryEntry value) {

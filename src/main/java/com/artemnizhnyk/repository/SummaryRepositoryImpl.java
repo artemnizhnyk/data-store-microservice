@@ -1,6 +1,7 @@
 package com.artemnizhnyk.repository;
 
 import com.artemnizhnyk.config.RedisSchema;
+import com.artemnizhnyk.model.Data;
 import com.artemnizhnyk.model.MeasurementType;
 import com.artemnizhnyk.model.Summary;
 import com.artemnizhnyk.model.SummaryType;
@@ -75,9 +76,94 @@ public class SummaryRepositoryImpl implements SummaryRepository {
                 if (value != null) {
                     entry.setValue(Double.parseDouble(value));
                 }
+                String counter = jedis.hget(
+                        RedisSchema.summaryKey(sensorId, mType),
+                        "counter"
+                );
+                if (counter != null) {
+                    entry.setCounter(Long.parseLong(counter));
+                }
                 summary.addValue(mType, entry);
             }
         }
         return Optional.of(summary);
+    }
+
+    @Override
+    public void handle(final Data data) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            if (!jedis.sismember(
+                    RedisSchema.sensorKeys(),
+                    String.valueOf(data.getSensorId())
+            )) {
+                jedis.sadd(
+                        RedisSchema.sensorKeys(),
+                        String.valueOf(data.getSensorId())
+                );
+            }
+            updateMinValue(data, jedis);
+            updateMaxValue(data, jedis);
+            updateSumAndAvgValue(data, jedis);
+        }
+    }
+
+    private void updateMinValue(final Data data, final Jedis jedis) {
+        String key = RedisSchema.summaryKey(data.getSensorId(), data.getMeasurementType());
+        String value = jedis.hget(key, SummaryType.MIN.name().toLowerCase());
+        if (value == null || data.getMeasurement() < Double.parseDouble(value)) {
+            jedis.hset(
+                    key,
+                    SummaryType.MIN.name().toLowerCase(),
+                    String.valueOf(data.getMeasurement())
+            );
+        }
+    }
+
+    private void updateMaxValue(final Data data, final Jedis jedis) {
+        String key = RedisSchema.summaryKey(data.getSensorId(), data.getMeasurementType());
+        String value = jedis.hget(key, SummaryType.MAX.name().toLowerCase());
+        if (value == null || data.getMeasurement() > Double.parseDouble(value)) {
+            jedis.hset(
+                    key,
+                    SummaryType.MAX.name().toLowerCase(),
+                    String.valueOf(data.getMeasurement())
+            );
+        }
+    }
+
+    private void updateSumAndAvgValue(final Data data, final Jedis jedis) {
+        updateSumValue(data, jedis);
+        String key = RedisSchema.summaryKey(data.getSensorId(), data.getMeasurementType());
+        String counter = jedis.hget(key, "counter");
+
+        if (counter == null) {
+            counter = String.valueOf(jedis.hset(key, "counter", String.valueOf(1)));
+        } else {
+            counter = String.valueOf(jedis.hincrBy(key, "counter", 1));
+        }
+
+        String sum = jedis.hget(key, SummaryType.SUM.name().toLowerCase());
+        jedis.hset(
+                key,
+                SummaryType.AVG.name().toLowerCase(),
+                String.valueOf(Double.parseDouble(sum) / Double.parseDouble(counter)));
+    }
+
+    private void updateSumValue(final Data data, final Jedis jedis) {
+        String key = RedisSchema.summaryKey(data.getSensorId(), data.getMeasurementType());
+        String value = jedis.hget(key, SummaryType.SUM.name().toLowerCase());
+        if (value == null) {
+            jedis.hset(
+                    key,
+                    SummaryType.SUM.name().toLowerCase(),
+                    String.valueOf(data.getMeasurement())
+            );
+        }else {
+            jedis.hincrByFloat(
+                    key,
+                    SummaryType.SUM.name().toLowerCase(),
+                    data.getMeasurement()
+            );
+        }
     }
 }

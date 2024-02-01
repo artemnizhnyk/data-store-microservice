@@ -1,5 +1,6 @@
 package com.artemnizhnyk.service;
 
+import com.artemnizhnyk.model.Data;
 import com.artemnizhnyk.model.MeasurementType;
 import com.artemnizhnyk.model.Summary;
 import com.artemnizhnyk.model.SummaryType;
@@ -27,5 +28,10 @@ public class SummaryServiceImpl implements SummaryService {
                 measurementTypes == null ? Set.of(MeasurementType.values()) : measurementTypes,
                 summaryTypes == null ? Set.of(SummaryType.values()) : summaryTypes
         ).orElseThrow(SensorNotFoundException::new);
+    }
+
+    @Override
+    public void handle(final Data data) {
+        summaryRepository.handle(data);
     }
 }

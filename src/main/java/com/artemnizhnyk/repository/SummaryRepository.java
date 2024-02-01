@@ -1,5 +1,6 @@
 package com.artemnizhnyk.repository;
 
+import com.artemnizhnyk.model.Data;
 import com.artemnizhnyk.model.MeasurementType;
 import com.artemnizhnyk.model.Summary;
 import com.artemnizhnyk.model.SummaryType;
@@ -12,4 +13,6 @@ public interface SummaryRepository {
     Optional<Summary> findBySensorId(final long sensorId,
                                      final Set<MeasurementType> measurementTypes,
                                      final Set<SummaryType> summaryTypes);
+
+    void handle(Data data);
 }
