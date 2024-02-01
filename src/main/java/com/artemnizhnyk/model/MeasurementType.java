@@ -1,4 +1,8 @@
-package com.artemnizhnyk.model.exception;
+package com.artemnizhnyk.model;
 
 public enum MeasurementType {
+
+    TEMPERATURE,
+    VOLTAGE,
+    POWER
 }
